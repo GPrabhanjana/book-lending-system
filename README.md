@@ -41,13 +41,13 @@ cd book-lending-system
 ### 2. Build the project
 
 ```bash
-cargo build --release
+cargo build 
 ```
 
 ### 3. Run the application
 
 ```bash
-cargo run --release
+cargo run 
 ```
 
 The server will start on `http://127.0.0.1:8080`
@@ -62,7 +62,7 @@ http://127.0.0.1:8080
 ## Default Admin Account
 
 - **Username:** admin
-- **Password:** admin123
+- **Password:** 123
 
 ## Project Structure
 
@@ -84,11 +84,6 @@ book-lending-system/
 ```
 
 ## API Documentation
-
-### Base URL
-```
-http://127.0.0.1:8080/api
-```
 
 ### Authentication Endpoints
 
@@ -501,17 +496,4 @@ cargo check
 cargo fmt
 ```
 
-## Troubleshooting
 
-### Database locked error
-If you encounter a "database is locked" error, make sure only one instance of the server is running.
-
-### Connection refused
-Make sure the server is running on port 8080 and no firewall is blocking the connection.
-
-### Session expired
-If you get unauthorized errors, your session may have expired. Log in again to get a new token.
-
-## License
-
-This project is created for educational purposes as part of an internship screening project.
