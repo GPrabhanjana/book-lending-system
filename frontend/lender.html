@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lender Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">Lender Dashboard</h1>
+            <div>
+                <span id="username-display" class="mr-4"></span>
+                <button onclick="handleLogout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Search Books</h2>
+            <div class="flex gap-2">
+                <input type="text" id="search-input" placeholder="Search by title, author, ISBN, or genre" 
+                       class="flex-1 px-3 py-2 border rounded">
+                <button onclick="searchBooks()" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+                    Search
+                </button>
+                <button onclick="loadAllBooks()" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">
+                    Show All
+                </button>
+            </div>
+        </div>
+
+        <!-- Available Books Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4">Available Books</h2>
+            <div id="books-list" class="space-y-4"></div>
+        </div>
+
+        <!-- My Borrowed Books Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">My Borrowed Books</h2>
+            <div id="borrowed-books-list" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        checkAuth();
+
+        async function loadAllBooks() {
+            try {
+                const books = await apiCall('/api/books', 'GET');
+                displayBooks(books);
+            } catch (error) {
+                alert('Failed to load books: ' + error.message);
+            }
+        }
+
+        async function searchBooks() {
+            const query = document.getElementById('search-input').value;
+            if (!query.trim()) {
+                loadAllBooks();
+                return;
+            }
+
+            try {
+                const books = await apiCall(`/api/books/search?q=${encodeURIComponent(query)}`, 'GET');
+                displayBooks(books);
+            } catch (error) {
+                alert('Search failed: ' + error.message);
+            }
+        }
+
+        function displayBooks(books) {
+            const listDiv = document.getElementById('books-list');
+            
+            if (books.length === 0) {
+                listDiv.innerHTML = '<p class="text-gray-500">No books found.</p>';
+                return;
+            }
+
+            listDiv.innerHTML = books.map(book => `
+                <div class="border p-4 rounded">
+                    <h3 class="font-bold text-lg">${escapeHtml(book.title)}</h3>
+                    <p class="text-gray-600">by ${escapeHtml(book.author)}</p>
+                    <p class="text-sm text-gray-500">ISBN: ${escapeHtml(book.isbn)}</p>
+                    ${book.genre ? `<p class="text-sm text-gray-500">Genre: ${escapeHtml(book.genre)}</p>` : ''}
+                    ${book.publication_year ? `<p class="text-sm text-gray-500">Year: ${book.publication_year}</p>` : ''}
+                    <p class="mt-2">
+                        <span class="font-semibold">Available: ${book.available_copies} / ${book.total_copies}</span>
+                    </p>
+                    ${book.available_copies > 0 ? 
+                        `<button onclick="borrowBook(${book.id})" class="mt-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                            Borrow
+                        </button>` :
+                        `<button disabled class="mt-2 bg-gray-300 text-gray-500 px-4 py-2 rounded cursor-not-allowed">
+                            Not Available
+                        </button>`
+                    }
+                </div>
+            `).join('');
+        }
+
+        async function borrowBook(bookId) {
+            if (!confirm('Do you want to borrow this book?')) return;
+
+            try {
+                await apiCall(`/api/lending/borrow/${bookId}`, 'POST', {}, true);
+                alert('Book borrowed successfully!');
+                loadAllBooks();
+                loadBorrowedBooks();
+            } catch (error) {
+                alert('Failed to borrow book: ' + error.message);
+            }
+        }
+
+        async function loadBorrowedBooks() {
+            try {
+                const records = await apiCall('/api/lending/my-books', 'GET', null, true);
+                displayBorrowedBooks(records);
+            } catch (error) {
+                alert('Failed to load borrowed books: ' + error.message);
+            }
+        }
+
+        function displayBorrowedBooks(records) {
+            const listDiv = document.getElementById('borrowed-books-list');
+            
+            if (records.length === 0) {
+                listDiv.innerHTML = '<p class="text-gray-500">You have no borrowed books.</p>';
+                return;
+            }
+
+            listDiv.innerHTML = records.map(record => {
+                const dueDate = new Date(record.due_date);
+                const isOverdue = record.status === 'overdue';
+                
+                return `
+                    <div class="border p-4 rounded ${isOverdue ? 'border-red-500 bg-red-50' : ''}">
+                        <h3 class="font-bold text-lg">${escapeHtml(record.title)}</h3>
+                        <p class="text-gray-600">by ${escapeHtml(record.author)}</p>
+                        <p class="text-sm text-gray-500">Borrowed: ${new Date(record.borrowed_at).toLocaleDateString()}</p>
+                        <p class="text-sm ${isOverdue ? 'text-red-600 font-bold' : 'text-gray-500'}">
+                            Due: ${dueDate.toLocaleDateString()} ${isOverdue ? '(OVERDUE)' : ''}
+                        </p>
+                        <button onclick="returnBook(${record.id})" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Return Book
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function returnBook(recordId) {
+            if (!confirm('Do you want to return this book?')) return;
+
+            try {
+                await apiCall(`/api/lending/return/${recordId}`, 'POST', {}, true);
+                alert('Book returned successfully!');
+                loadAllBooks();
+                loadBorrowedBooks();
+            } catch (error) {
+                alert('Failed to return book: ' + error.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load data on page load
+        window.onload = function() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('username-display').textContent = `Welcome, ${user.username}!`;
+            loadAllBooks();
+            loadBorrowedBooks();
+        };
+
+        // Allow search on Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchBooks();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

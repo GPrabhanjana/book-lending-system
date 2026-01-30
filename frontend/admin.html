@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+            <div>
+                <span id="username-display" class="mr-4"></span>
+                <button onclick="handleLogout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="mb-6 flex gap-2">
+            <button onclick="showTab('books')" id="tab-books" class="px-4 py-2 bg-blue-500 text-white rounded">
+                Manage Books
+            </button>
+            <button onclick="showTab('users')" id="tab-users" class="px-4 py-2 bg-gray-300 rounded">
+                View Users
+            </button>
+            <button onclick="showTab('lending')" id="tab-lending" class="px-4 py-2 bg-gray-300 rounded">
+                Active Lending
+            </button>
+            <button onclick="showTab('overdue')" id="tab-overdue" class="px-4 py-2 bg-gray-300 rounded">
+                Overdue Books
+            </button>
+        </div>
+
+        <!-- Books Management Tab -->
+        <div id="content-books" class="tab-content">
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <h2 class="text-xl font-semibold mb-4">Add New Book</h2>
+                <form id="add-book-form" class="grid grid-cols-2 gap-4">
+                    <input type="text" id="book-title" placeholder="Title" class="px-3 py-2 border rounded" required>
+                    <input type="text" id="book-author" placeholder="Author" class="px-3 py-2 border rounded" required>
+                    <input type="text" id="book-isbn" placeholder="ISBN" class="px-3 py-2 border rounded" required>
+                    <input type="number" id="book-year" placeholder="Publication Year" class="px-3 py-2 border rounded">
+                    <input type="text" id="book-genre" placeholder="Genre" class="px-3 py-2 border rounded">
+                    <input type="number" id="book-copies" placeholder="Total Copies" class="px-3 py-2 border rounded" required min="1">
+                    <button type="submit" class="col-span-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Add Book
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">All Books</h2>
+                <div id="books-list" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="content-users" class="tab-content" style="display: none;">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">All Users</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left">ID</th>
+                                <th class="px-4 py-2 text-left">Username</th>
+                                <th class="px-4 py-2 text-left">Email</th>
+                                <th class="px-4 py-2 text-left">Role</th>
+                                <th class="px-4 py-2 text-left">Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Lending Tab -->
+        <div id="content-lending" class="tab-content" style="display: none;">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Active Borrowed Books</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left">User</th>
+                                <th class="px-4 py-2 text-left">Book</th>
+                                <th class="px-4 py-2 text-left">Author</th>
+                                <th class="px-4 py-2 text-left">Borrowed</th>
+                                <th class="px-4 py-2 text-left">Due Date</th>
+                                <th class="px-4 py-2 text-left">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lending-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Books Tab -->
+        <div id="content-overdue" class="tab-content" style="display: none;">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Overdue Books</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left">User</th>
+                                <th class="px-4 py-2 text-left">Book</th>
+                                <th class="px-4 py-2 text-left">Author</th>
+                                <th class="px-4 py-2 text-left">Due Date</th>
+                                <th class="px-4 py-2 text-left">Days Overdue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overdue-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Book Modal -->
+        <div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                <h2 class="text-xl font-semibold mb-4">Edit Book</h2>
+                <form id="edit-book-form">
+                    <input type="hidden" id="edit-book-id">
+                    <div class="mb-3">
+                        <label class="block mb-1">Title</label>
+                        <input type="text" id="edit-book-title" class="w-full px-3 py-2 border rounded">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block mb-1">Author</label>
+                        <input type="text" id="edit-book-author" class="w-full px-3 py-2 border rounded">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block mb-1">ISBN</label>
+                        <input type="text" id="edit-book-isbn" class="w-full px-3 py-2 border rounded">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block mb-1">Year</label>
+                        <input type="number" id="edit-book-year" class="w-full px-3 py-2 border rounded">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block mb-1">Genre</label>
+                        <input type="text" id="edit-book-genre" class="w-full px-3 py-2 border rounded">
+                    </div>
+                    <div class="mb-3">
+                        <label class="block mb-1">Total Copies</label>
+                        <input type="number" id="edit-book-copies" class="w-full px-3 py-2 border rounded" min="1">
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Save
+                        </button>
+                        <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        checkAuth('admin');
+
+        function showTab(tab) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Reset all tab buttons
+            document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-300');
+            });
+            
+            // Show selected tab
+            document.getElementById(`content-${tab}`).style.display = 'block';
+            document.getElementById(`tab-${tab}`).classList.add('bg-blue-500', 'text-white');
+            document.getElementById(`tab-${tab}`).classList.remove('bg-gray-300');
+            
+            // Load data for the tab
+            if (tab === 'books') loadAllBooks();
+            if (tab === 'users') loadAllUsers();
+            if (tab === 'lending') loadActiveLending();
+            if (tab === 'overdue') loadOverdueBooks();
+        }
+
+        // Book Management
+        document.getElementById('add-book-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const bookData = {
+                title: document.getElementById('book-title').value,
+                author: document.getElementById('book-author').value,
+                isbn: document.getElementById('book-isbn').value,
+                publication_year: parseInt(document.getElementById('book-year').value) || null,
+                genre: document.getElementById('book-genre').value || null,
+                total_copies: parseInt(document.getElementById('book-copies').value)
+            };
+
+            try {
+                await apiCall('/api/books', 'POST', bookData, true);
+                alert('Book added successfully!');
+                this.reset();
+                loadAllBooks();
+            } catch (error) {
+                alert('Failed to add book: ' + error.message);
+            }
+        });
+
+        async function loadAllBooks() {
+            try {
+                const books = await apiCall('/api/books', 'GET');
+                displayBooksAdmin(books);
+            } catch (error) {
+                alert('Failed to load books: ' + error.message);
+            }
+        }
+
+        function displayBooksAdmin(books) {
+            const listDiv = document.getElementById('books-list');
+            
+            if (books.length === 0) {
+                listDiv.innerHTML = '<p class="text-gray-500">No books in the system.</p>';
+                return;
+            }
+
+            listDiv.innerHTML = books.map(book => `
+                <div class="border p-4 rounded">
+                    <h3 class="font-bold text-lg">${escapeHtml(book.title)}</h3>
+                    <p class="text-gray-600">by ${escapeHtml(book.author)}</p>
+                    <p class="text-sm text-gray-500">ISBN: ${escapeHtml(book.isbn)}</p>
+                    ${book.genre ? `<p class="text-sm text-gray-500">Genre: ${escapeHtml(book.genre)}</p>` : ''}
+                    ${book.publication_year ? `<p class="text-sm text-gray-500">Year: ${book.publication_year}</p>` : ''}
+                    <p class="mt-2">Available: ${book.available_copies} / ${book.total_copies}</p>
+                    <div class="mt-2 flex gap-2">
+                        <button onclick='editBook(${JSON.stringify(book)})' class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                            Edit
+                        </button>
+                        <button onclick="deleteBook(${book.id})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function editBook(book) {
+            document.getElementById('edit-book-id').value = book.id;
+            document.getElementById('edit-book-title').value = book.title;
+            document.getElementById('edit-book-author').value = book.author;
+            document.getElementById('edit-book-isbn').value = book.isbn;
+            document.getElementById('edit-book-year').value = book.publication_year || '';
+            document.getElementById('edit-book-genre').value = book.genre || '';
+            document.getElementById('edit-book-copies').value = book.total_copies;
+            
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        document.getElementById('edit-book-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const bookId = document.getElementById('edit-book-id').value;
+            const bookData = {
+                title: document.getElementById('edit-book-title').value,
+                author: document.getElementById('edit-book-author').value,
+                isbn: document.getElementById('edit-book-isbn').value,
+                publication_year: parseInt(document.getElementById('edit-book-year').value) || null,
+                genre: document.getElementById('edit-book-genre').value || null,
+                total_copies: parseInt(document.getElementById('edit-book-copies').value)
+            };
+
+            try {
+                await apiCall(`/api/books/${bookId}`, 'PUT', bookData, true);
+                alert('Book updated successfully!');
+                closeEditModal();
+                loadAllBooks();
+            } catch (error) {
+                alert('Failed to update book: ' + error.message);
+            }
+        });
+
+        async function deleteBook(bookId) {
+            if (!confirm('Are you sure you want to delete this book?')) return;
+
+            try {
+                await apiCall(`/api/books/${bookId}`, 'DELETE', null, true);
+                alert('Book deleted successfully!');
+                loadAllBooks();
+            } catch (error) {
+                alert('Failed to delete book: ' + error.message);
+            }
+        }
+
+        // Users Management
+        async function loadAllUsers() {
+            try {
+                const users = await apiCall('/api/admin/users', 'GET', null, true);
+                displayUsers(users);
+            } catch (error) {
+                alert('Failed to load users: ' + error.message);
+            }
+        }
+
+        function displayUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">No users found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr class="border-t">
+                    <td class="px-4 py-2">${user.id}</td>
+                    <td class="px-4 py-2">${escapeHtml(user.username)}</td>
+                    <td class="px-4 py-2">${escapeHtml(user.email)}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+                            ${user.role}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">${new Date(user.created_at).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Lending Management
+        async function loadActiveLending() {
+            try {
+                const records = await apiCall('/api/admin/lending/active', 'GET', null, true);
+                displayLendingRecords(records);
+            } catch (error) {
+                alert('Failed to load lending records: ' + error.message);
+            }
+        }
+
+        function displayLendingRecords(records) {
+            const tbody = document.getElementById('lending-table-body');
+            
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">No active lending records.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = records.map(record => `
+                <tr class="border-t">
+                    <td class="px-4 py-2">${escapeHtml(record.username)}</td>
+                    <td class="px-4 py-2">${escapeHtml(record.title)}</td>
+                    <td class="px-4 py-2">${escapeHtml(record.author)}</td>
+                    <td class="px-4 py-2">${new Date(record.borrowed_at).toLocaleDateString()}</td>
+                    <td class="px-4 py-2">${new Date(record.due_date).toLocaleDateString()}</td>
+                    <td class="px-4 py-2">
+                        <span class="px-2 py-1 rounded ${record.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                            ${record.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Overdue Books
+        async function loadOverdueBooks() {
+            try {
+                const records = await apiCall('/api/admin/lending/overdue', 'GET', null, true);
+                displayOverdueRecords(records);
+            } catch (error) {
+                alert('Failed to load overdue books: ' + error.message);
+            }
+        }
+
+        function displayOverdueRecords(records) {
+            const tbody = document.getElementById('overdue-table-body');
+            
+            if (records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">No overdue books.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = records.map(record => {
+                const dueDate = new Date(record.due_date);
+                const today = new Date();
+                const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+                
+                return `
+                    <tr class="border-t bg-red-50">
+                        <td class="px-4 py-2">${escapeHtml(record.username)}</td>
+                        <td class="px-4 py-2">${escapeHtml(record.title)}</td>
+                        <td class="px-4 py-2">${escapeHtml(record.author)}</td>
+                        <td class="px-4 py-2">${dueDate.toLocaleDateString()}</td>
+                        <td class="px-4 py-2 text-red-600 font-bold">${daysOverdue} days</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load initial data
+        window.onload = function() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('username-display').textContent = `Welcome, ${user.username}!`;
+            loadAllBooks();
+        };
+    </script>
+</body>
+</html>
